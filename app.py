@@ -17,7 +17,33 @@ LB_TO_KG = 0.453592
 MODES = ["Cars", "Bus", "Streetcar", "Subway"]
 COLORS = ["#d9480f", "#1971c2", "#2f9e44", "#7048e8"]
 
-st.set_page_config(page_title="Car vs Transit", page_icon="🚇", layout="wide")
+st.set_page_config(page_title="Car vs Transit", page_icon="🚇", layout="wide", initial_sidebar_state="collapsed")
+
+SOURCES = (
+    "- Gasoline produces 8,887 g of CO2 per gallon and diesel produces 10,180 g "
+    "([US EPA](https://www.epa.gov/greenvehicles/greenhouse-gas-emissions-typical-passenger-vehicle)).\n"
+    "- 22.2 mpg is the EPA figure for the average gasoline vehicle on the road "
+    "([US EPA](https://www.epa.gov/node/131759)).\n"
+    "- 3.6 mpg is in the range reported for 40 ft diesel transit buses, about 3.6 to 4.2 mpg "
+    "([USDOT](https://rosap.ntl.bts.gov/view/dot/31283/dot_31283_DS1.pdf), "
+    "[NREL](https://www.nrel.gov/grid/news/program/2016/nrel-fuel-cell-bus-analysis-finds-fuel-economy-to-be-14-times-higher-than-diesel)).\n"
+    "- Subway and streetcar electricity: US heavy rail used 3,683 million kWh over 621 million car miles "
+    "(about 5.9 kWh per car mile) and light rail used 510 million kWh over 61 million vehicle miles "
+    "(about 8.4) in 2002 "
+    "([BTS Transit Profile](https://webarchive.library.unt.edu/eot2008/20090510110610/http:/www.bts.gov/publications/national_transportation_statistics/2003/html/table_transit_profile.html)). "
+    "Streetcars are counted as light rail.\n"
+    "- Grid CO2: 771.5 lb per MWh, the US average in EPA eGRID 2023 "
+    "([US EPA](https://www.epa.gov/egrid/summary-data)). Your local grid may be cleaner or dirtier.\n"
+    "- Streetcar: a common US model is 66.5 ft long and carries 125 to 150 riders fully loaded "
+    "([Brookville Liberty](https://www.wikipedia.org/wiki/Brookville_Liberty)). "
+    "72 ft of lane adds a 5 ft gap.\n"
+    "- Subway: New York City Transit schedules 110 riders per car at peak on its 51 ft cars "
+    "([source](https://bqrail.substack.com/p/railcar-capacity-and-human-body-size)). "
+    "Subways run underground, so they use no street space.\n"
+    "- Riders per bus, people per car, and car and bus lane space are simple assumptions "
+    "(a 15 ft car plus a 5 ft gap, a 40 ft bus plus a 5 ft gap).\n"
+    "- Only CO2 from the trip itself is counted: tailpipe for cars and buses, power plants for rail."
+)
 
 # ---------- Sidebar: assumptions ----------
 with st.sidebar:
@@ -44,34 +70,6 @@ with st.sidebar:
 
     st.subheader("Power grid")
     grid_lb = st.number_input("Grid CO2 (lb per MWh)", min_value=0.0, value=771.5, step=10.0)
-
-    st.markdown("---")
-    st.subheader("Sources")
-    st.markdown(
-        "- Gasoline produces 8,887 g of CO2 per gallon and diesel produces 10,180 g "
-        "([US EPA](https://www.epa.gov/greenvehicles/greenhouse-gas-emissions-typical-passenger-vehicle)).\n"
-        "- 22.2 mpg is the EPA figure for the average gasoline vehicle on the road "
-        "([US EPA](https://www.epa.gov/node/131759)).\n"
-        "- 3.6 mpg is in the range reported for 40 ft diesel transit buses, about 3.6 to 4.2 mpg "
-        "([USDOT](https://rosap.ntl.bts.gov/view/dot/31283/dot_31283_DS1.pdf), "
-        "[NREL](https://www.nrel.gov/grid/news/program/2016/nrel-fuel-cell-bus-analysis-finds-fuel-economy-to-be-14-times-higher-than-diesel)).\n"
-        "- Subway and streetcar electricity: US heavy rail used 3,683 million kWh over 621 million car miles "
-        "(about 5.9 kWh per car mile) and light rail used 510 million kWh over 61 million vehicle miles "
-        "(about 8.4) in 2002 "
-        "([BTS Transit Profile](https://webarchive.library.unt.edu/eot2008/20090510110610/http:/www.bts.gov/publications/national_transportation_statistics/2003/html/table_transit_profile.html)). "
-        "Streetcars are counted as light rail.\n"
-        "- Grid CO2: 771.5 lb per MWh, the US average in EPA eGRID 2023 "
-        "([US EPA](https://www.epa.gov/egrid/summary-data)). Your local grid may be cleaner or dirtier.\n"
-        "- Streetcar: a common US model is 66.5 ft long and carries 125 to 150 riders fully loaded "
-        "([Brookville Liberty](https://www.wikipedia.org/wiki/Brookville_Liberty)). "
-        "72 ft of lane adds a 5 ft gap.\n"
-        "- Subway: New York City Transit schedules 110 riders per car at peak on its 51 ft cars "
-        "([source](https://bqrail.substack.com/p/railcar-capacity-and-human-body-size)). "
-        "Subways run underground, so they use no street space.\n"
-        "- Riders per bus, people per car, and car and bus lane space are simple assumptions "
-        "(a 15 ft car plus a 5 ft gap, a 40 ft bus plus a 5 ft gap).\n"
-        "- Only CO2 from the trip itself is counted: tailpipe for cars and buses, power plants for rail."
-    )
 
 # ---------- Header and controls ----------
 st.title("Car vs Transit")
@@ -140,7 +138,7 @@ scene = {
 components.html(
     f"""
     <canvas id="street" width="960" height="520"
-            style="width:100%;height:auto;display:block;border-radius:10px;"></canvas>
+            style="width:100%;max-width:960px;height:auto;display:block;margin:0 auto;border-radius:10px;"></canvas>
     <script>
       const SCENE = {json.dumps(scene)};
       {street_js}
@@ -149,35 +147,71 @@ components.html(
     height=545,
 )
 
-# ---------- Summary ----------
-who = "1 commuter" if commuters == 1 else f"{commuters} commuters"
-winners, losers = [], []
-for mode in ["Bus", "Streetcar", "Subway"]:
-    if co2[mode] < co2["Cars"]:
-        winners.append(
-            f"- **{mode}:** {co2['Cars'] - co2[mode]:,.1f} kg less CO2 and "
-            f"{space['Cars'] - space[mode]:,.0f} ft less street space"
+# ---------- The story: car vs bus ----------
+def plural(n, one, many):
+    return f"{n:,} {one if n == 1 else many}"
+
+
+def compare(car_value, bus_value):
+    """Describe the bus against the cars in words: ('6 times', 'less') or ('25%', 'less')."""
+    if bus_value == car_value:
+        return "About", "the same"
+    if bus_value < car_value:
+        ratio = car_value / bus_value
+        return (f"{round(ratio)} times", "less") if ratio >= 1.95 else (f"{round((1 - 1 / ratio) * 100)}%", "less")
+    ratio = bus_value / car_value
+    return (f"{round(ratio)} times", "more") if ratio >= 1.95 else (f"{round((ratio - 1) * 100)}%", "more")
+
+
+people = plural(commuters, "person", "people")
+st.markdown(
+    f"### Moving {people} takes {plural(cars, 'car', 'cars')}, "
+    f"or {'just ' if buses < cars else ''}{plural(buses, 'bus', 'buses')}."
+)
+
+if co2["Bus"] < co2["Cars"]:
+    st.success("Compared with all those cars, the bus does the same job with:")
+else:
+    riders_needed = math.floor(co2_per_vehicle_mile["Bus"] / car_co2_per_person_mile) + 1
+    if riders_needed <= capacity["Bus"]:
+        st.warning(
+            f"With only {people} on board, the bus is mostly empty. "
+            f"Once about {riders_needed} riders get on, it beats the cars on pollution. Try moving the slider."
         )
     else:
-        riders_needed = math.floor(co2_per_vehicle_mile[mode] / car_co2_per_person_mile) + 1
-        if riders_needed <= capacity[mode]:
-            losers.append(f"- **{mode}:** needs about {riders_needed} riders to beat the cars on CO2")
-        else:
-            losers.append(f"- **{mode}:** does not beat the cars on CO2 even when full, with these settings")
+        st.warning("With these settings, the bus does not beat the cars on pollution even when full.")
 
-if winners:
-    st.success(f"Compared with driving, moving **{who}** {miles} miles by:\n" + "\n".join(winners))
-if losers:
-    st.warning(f"With only **{who}**, some transit vehicles are mostly empty:\n" + "\n".join(losers))
+cards = [
+    ("pollution (CO2)", co2["Cars"], co2["Bus"]),
+    ("fuel burned", fuel["Cars"], fuel["Bus"]),
+    ("road space", space["Cars"], space["Bus"]),
+]
+for col, (label, car_value, bus_value) in zip(st.columns(3), cards):
+    amount, word = compare(car_value, bus_value)
+    color = "#2f9e44" if word == "less" else "#d9480f" if word == "more" else "inherit"
+    col.markdown(
+        f"<div style='text-align:center;padding:12px 0'>"
+        f"<div style='font-size:2.6rem;font-weight:700;color:{color};line-height:1.1'>{amount}</div>"
+        f"<div style='font-size:1.15rem'>{word} {label}</div></div>",
+        unsafe_allow_html=True,
+    )
 
-# ---------- Key numbers ----------
-st.subheader("Each option vs driving")
-cols = st.columns(3)
-for col, mode in zip(cols, ["Bus", "Streetcar", "Subway"]):
-    with col:
-        st.markdown(f"**{mode}**")
-        st.metric("CO2 (kg)", f"{co2[mode]:,.1f}", f"{co2[mode] - co2['Cars']:+,.1f} vs cars", delta_color="inverse")
-        st.metric("Street space (ft)", f"{space[mode]:,}", f"{space[mode] - space['Cars']:+,} vs cars", delta_color="inverse")
+# ---------- Which way is cleanest ----------
+st.subheader("Pollution per person, for each way to get there")
+per_person = pd.DataFrame({"Mode": MODES, "CO2 per person (kg)": [co2[m] / commuters for m in MODES]})
+per_person_chart = (
+    alt.Chart(per_person)
+    .mark_bar(cornerRadiusEnd=4)
+    .encode(
+        y=alt.Y("Mode:N", title=None, sort=MODES),
+        x=alt.X("CO2 per person (kg):Q", title=None, axis=None),
+        color=alt.Color("Mode:N", scale=alt.Scale(domain=MODES, range=COLORS), legend=None),
+        tooltip=["Mode", alt.Tooltip("CO2 per person (kg):Q", format=",.2f")],
+    )
+    .properties(height=180)
+)
+st.altair_chart(per_person_chart, use_container_width=True)
+st.caption("Shorter bar = less pollution for each commuter.")
 
 # ---------- Comparison chart ----------
 metrics = [
@@ -213,9 +247,12 @@ chart = (
     .resolve_scale(x="independent")
 )
 
-st.subheader("All four side by side")
-st.altair_chart(chart)
-
-with st.expander("See the numbers"):
+with st.expander("See all the numbers"):
+    st.altair_chart(chart)
     table = pd.DataFrame({name: values for name, values in metrics}).T[MODES]
     st.dataframe(table.style.format("{:,.2f}"), use_container_width=True)
+
+with st.expander("Sources"):
+    st.markdown(SOURCES)
+
+st.caption("Want to change the assumptions, like fuel economy or riders per bus? Open the sidebar on the left.")
